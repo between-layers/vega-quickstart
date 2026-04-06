@@ -1,0 +1,3 @@
+[submodule "rv32m1-sdk"]
+	path = rv32m1-sdk
+	url = https://github.com/open-isa-rv32m1/rv32m1_sdk_riscv.git

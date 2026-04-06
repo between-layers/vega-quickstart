@@ -1,0 +1,25 @@
+{
+  "dockerFile": "../Containerfile",
+  "build": {
+    "args": {
+      "WORKSPACE": "${containerWorkspaceFolder}"
+    }
+  },
+  "remoteUser": "dev",
+  "runArgs": ["--privileged", "--hostname=vega"],
+  "containerEnv": {},
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "njpwerner.autodocstring",
+        "ms-vscode.cpptools",
+        "ms-vscode.makefile-tools",
+        "twxs.cmake",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml"
+      ],
+    },
+  },
+}

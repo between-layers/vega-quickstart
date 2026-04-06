@@ -1,0 +1,3 @@
+# RISC-V Embedded Systems Training (VEGA edition)
+
+Coming soon...

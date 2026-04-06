@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "${default}",
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "includePath": [
+                "${workspaceFolder}/rv32m1-sdk/devices/RV32M1/**",
+                "${workspaceFolder}/rv32m1-sdk/boards/**",
+                "${workspaceFolder}/rv32m1-sdk/RISCV/**",
+                "${workspaceFolder}/apps/*/**",
+                "/opt/riscv32i/include"
+            ],
+             "defines": [
+                "CPU_RV32M1_ri5cy",
+                "__IO=volatile",
+                "__O=volatile",
+                "__I=volatile"
+            ],
+            "name": "vega",
+            "intelliSenseMode": "gcc-x86",
+            "compilerPath": "/opt/riscv32i/bin/riscv32-unknown-elf-gcc",
+            "cStandard": "gnu89",
+            "cppStandard": "c++11"
+        }
+    ],
+    "version": 4
+}
