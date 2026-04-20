@@ -1,19 +1,16 @@
 # syntax=docker/dockerfile:1
 #
-# HaDes-V development environment
-#
-# Includes: Verilator v5.006, RISC-V GNU Toolchain (rv32i), GTKWave, Git,
-#           and AMD Vivado WebPACK (requires manual download — see below).
+# RISC-V VEGA development environment
 #
 # BUILD:
 #   docker build -t vega -f Containerfile .
 #
-# The Verilator and RISC-V toolchain stages are independent and will be built
-# in parallel automatically when BuildKit is active (default in recent Podman/Docker).
-#
 # RUN:
-#   docker run --rm -it -v "$(pwd)":/work hades-v
+#   docker run --rm -it -v "$(pwd)":/work vega
 #
+# TODO: host Docker container image on GitHub (ghcr.io), see how CHERIoT does it:
+# https://github.com/orgs/CHERIoT-Platform/packages/container/package/devcontainer
+
 ARG RENODE_DEST_BUILDER=/opt/renode/
 ARG RENODE_VERSION=1.16.1
 ARG RENODE_URL=https://github.com/renode/renode/releases/download/v${RENODE_VERSION}/renode-${RENODE_VERSION}.linux-dotnet.tar.gz
