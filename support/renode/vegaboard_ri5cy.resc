@@ -1,0 +1,11 @@
+include @support/renode/NXP_GPIO.cs
+
+$name?="Vegaboard-RI5CY"
+using sysbus
+
+mach create $name
+machine LoadPlatformDescription @support/renode/vegaboard_ri5cy_platform.repl
+
+showAnalyzer lpuart0
+
+sysbus LoadELF $bin

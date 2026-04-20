@@ -1,0 +1,345 @@
+// VEGAboard RI5CY - Complete platform description for Renode
+//
+// Extends the upstream vegaboard_ri5cy.repl with missing peripherals:
+//   - GPIO ports A-E (fixes "WriteDoubleWord to non existing peripheral at 0x4802000C")
+//   - PORT pinmux controllers A-E
+//   - LPSPI 0-3 (SPI buses)
+//   - LPI2C 0-3 (I2C buses)
+//   - TPM 0-3 (Timer/PWM modules)
+//   - LPUART 2-3 (additional UARTs beyond what ri5cy.repl defines)
+//   - LPTMR 2 (additional low-power timer)
+//   - FTFE flash controller stub
+//   - SCG, EVENT, INTMUX stubs
+//
+// Addresses derived from:
+//   - Zephyr dts/riscv/openisa/rv32m1.dtsi
+//   - NXP/OpenISA RV32M1 Reference Manual (RV32M1RM_Rev.1.1)
+//   - https://github.com/renode/renode/blob/master/platforms/cpus/ri5cy.repl
+//   - https://github.com/renode/renode/blob/master/platforms/boards/vegaboard_ri5cy.repl
+//
+// Usage: replace or extend the upstream vegaboard_ri5cy.repl with this file.
+// If extending, change the first line to:
+//   using "platforms/boards/vegaboard_ri5cy.repl"
+// and remove any duplicated peripheral definitions below.
+
+// ---- Core CPU and Memories -----------------------------------------------------------------------------------
+
+cpu: CPU.Ri5cy @ sysbus
+    privilegedArchitecture: PrivilegedArchitecture.Priv1_10
+
+flash: Memory.MappedMemory @ sysbus 0x0
+    size: 0x100000
+
+mem: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x30000
+
+// ---- Interrupt Controller ------------------------------------------------------------------------------------
+
+intmux0: IRQControllers.NXP_INTMUX @ sysbus 0x4004F000
+    [0, 1, 2, 3, 4, 5, 6, 7] -> cpu@[24, 25, 26, 27, 28, 29, 30, 31]
+
+// ---- GPIO Ports ---------------
+//
+// The RV32M1 GPIO registers are a compact 0x14-byte block per port.
+// GPIOA-D share the AHB GPIO bus starting at 0x48020000 (stride 0x40).
+// GPIOE is on a separate bus at 0x4100F000.
+
+gpioa: GPIOPort.NXP_GPIO @ sysbus 0x48020000
+gpiob: GPIOPort.NXP_GPIO @ sysbus 0x48020040
+gpioc: GPIOPort.NXP_GPIO @ sysbus 0x48020080
+gpiod: GPIOPort.NXP_GPIO @ sysbus 0x480200C0
+gpioe: GPIOPort.NXP_GPIO @ sysbus 0x4100F000
+
+// ---- PORT Pinmux Controllers -------------------------------------------------------------------------------
+//
+// Each PORT block (PCR[0..31] + GPCLR/GPCHR + ISFR) is 0xD0 bytes.
+// Modelled as a simple read/write register file via PythonPeripheral.
+// Required: Zephyr GPIO and pinmux drivers probe these before using GPIO.
+
+porta: Python.PythonPeripheral @ sysbus 0x40046000
+    size: 0xD0
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+portb: Python.PythonPeripheral @ sysbus 0x40047000
+    size: 0xD0
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+portc: Python.PythonPeripheral @ sysbus 0x40048000
+    size: 0xD0
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+portd: Python.PythonPeripheral @ sysbus 0x40049000
+    size: 0xD0
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+porte: Python.PythonPeripheral @ sysbus 0x41037000
+    size: 0xD0
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- UART (LPUART) ----------------------------------------------------------------------------------------------─
+//
+// lpuart0 is the console UART (connected to OpenSDA).
+// lpuart1 uses intmux0 channel 13.
+// lpuart2 and lpuart3 are additional UARTs.
+
+lpuart0: UART.NXP_LPUART @ sysbus 0x40042000
+    fifoSize: 8
+    IRQ -> cpu@17
+
+lpuart1: UART.NXP_LPUART @ sysbus 0x40043000
+    fifoSize: 8
+    IRQ -> intmux0#0@13
+
+lpuart2: UART.NXP_LPUART @ sysbus 0x40044000
+    fifoSize: 8
+    IRQ -> intmux0#0@14
+
+lpuart3: UART.NXP_LPUART @ sysbus 0x41036000
+    fifoSize: 8
+    IRQ -> intmux0#1@0
+
+// ---- SPI (LPSPI) ---------------------------------------------------------------------------------------------------
+//
+// Renode does not ship a dedicated NXP_LPSPI model, so these are modelled
+// as generic read/write register files. This silences bus-fault warnings
+// and allows clock/config writes to succeed. Replace with a proper SPI
+// model if you need functional SPI transactions.
+//
+// Register block size: 0x78 bytes (per RV32M1RM / Zephyr dtsi).
+
+lpspi0: Python.PythonPeripheral @ sysbus 0x4003F000
+    size: 0x78
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpspi1: Python.PythonPeripheral @ sysbus 0x40040000
+    size: 0x78
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpspi2: Python.PythonPeripheral @ sysbus 0x40041000
+    size: 0x78
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpspi3: Python.PythonPeripheral @ sysbus 0x41035000
+    size: 0x78
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- I2C (LPI2C) ---------------------------------------------------------------------------------------------------
+//
+// No dedicated NXP LPI2C model in Renode. Modelled as register files.
+// Register block size: 0x170 bytes (per Zephyr dtsi).
+
+lpi2c0: Python.PythonPeripheral @ sysbus 0x4003A000
+    size: 0x170
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpi2c1: Python.PythonPeripheral @ sysbus 0x4003B000
+    size: 0x170
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpi2c2: Python.PythonPeripheral @ sysbus 0x4003C000
+    size: 0x170
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+lpi2c3: Python.PythonPeripheral @ sysbus 0x4102E000
+    size: 0x170
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- Low-Power Timers (LPTMR) ---------------------------------------------------------------------------
+//
+// lptmr0 is used as the Zephyr system timer (SIRC-clocked).
+// lptmr1 and lptmr2 are additional instances.
+
+lptmr0: UART.LowPower_Timer @ sysbus 0x40032000
+    -> intmux0#0@24
+
+lptmr1: UART.LowPower_Timer @ sysbus 0x40033000
+
+lptmr2: UART.LowPower_Timer @ sysbus 0x4102B000
+
+// ---- Timer/PWM Modules (TPM) -------------------------------------------------------------------------------
+//
+// Register block size: 0x88 bytes each.
+// Modelled as register files; replace with a functional PWM model if needed.
+
+tpm0: Python.PythonPeripheral @ sysbus 0x40035000
+    size: 0x88
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+tpm1: Python.PythonPeripheral @ sysbus 0x40036000
+    size: 0x88
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+tpm2: Python.PythonPeripheral @ sysbus 0x40037000
+    size: 0x88
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+tpm3: Python.PythonPeripheral @ sysbus 0x4102D000
+    size: 0x88
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- Peripheral Clock Controllers (PCC) ----------------------------------------------------------─
+//
+// PCC entries default to 0x80000000 (clock present, CGC enabled).
+// PCC0: 0x4002B000, size 0x204 (bus 0 peripherals)
+// PCC1: 0x41027000, size 0x208 (bus 1 peripherals)
+
+pcc0: Python.PythonPeripheral @ sysbus 0x4002B000
+    initable: true
+    size: 0x204
+    script: '''
+if request.IsInit: regs = [0x80000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+pcc1: Python.PythonPeripheral @ sysbus 0x41027000
+    initable: true
+    size: 0x208
+    script: '''
+if request.IsInit: regs = [0x80000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- System Clock Generator (SCG) ---------------------------------------------------------------------
+//
+// SCG_CSR reports clock source ready. The startup sequence reads CSR twice:
+//   first read → SPLL selected (0x06000001 or 0x02000000 depending on init)
+//   subsequent reads → FIRC as system clock (0x03000001)
+// SIRC/FIRC/LPFLL CSR registers return "clock valid" so drivers don't spin.
+
+SCG_CSR: Python.PythonPeripheral @ sysbus 0x4002C010
+    size: 0x4
+    initable: true
+    script: '''
+if request.IsInit: firstRead = True
+if request.IsRead: request.Value = 0x2000000 if firstRead else 0x3000001; firstRead = False
+'''
+
+// ---- FTFE Flash Memory Controller ---------------------------------------------------------------------
+//
+// Stub: returns a "command complete" status so flash init doesn't hang.
+// FSTAT register at offset 0 bit 7 (CCIF) = command complete.
+
+ftfe: Python.PythonPeripheral @ sysbus 0x40023000
+    size: 0x18
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x80000000] + [0x00000000] * ((size / 4) - 1)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- INTMUX1 (bus 1 interrupt multiplexer) ------------------------------------------------------
+
+intmux1: Python.PythonPeripheral @ sysbus 0x41022000
+    size: 0x200
+    initable: true
+    script: '''
+if request.IsInit: regs = [0x00000000] * (size / 4)
+if request.IsRead: request.Value = regs[request.Offset >> 2]
+if request.IsWrite: regs[request.Offset >> 2] = request.Value
+'''
+
+// ---- sysbus Tags and Silence Ranges ----------------------------------------------------------------─
+
+sysbus:
+    init:
+        // SCG clock status registers – return "valid/ready" for SIRC, FIRC, LPFLL
+        Tag <0x4002C200 0x4> "SIRCCSR"  0xFFFFFFFF  // Slow IRC: valid, high-range
+        Tag <0x4002C208 0x4> "SIRCCFG"  0x00000001  // SIRC high-range (8 MHz)
+        Tag <0x4002C300 0x4> "FIRCCSR"  0xFFFFFFFF  // Fast IRC: valid
+        Tag <0x4002C304 0x4> "FIRCDIV"  0x00010101  // FIRC dividers: divide by 1
+        Tag <0x4002C500 0x4> "LPFLLCSR" 0xFFFFFFFF  // Low-power FLL: valid
+
+        // EVENT units – silence the clear-interrupt-pending register
+        SilenceRange <0xE0041000 0x1000>  // EVENT0 (core-local)
+        SilenceRange <0x4101F000 0x1000>  // EVENT1
+
+        // MSCM / crossbar stubs (accessed during SoC init)
+        Tag <0x40001000 0x4> "MSCM_CPxTYPE" 0x00000000

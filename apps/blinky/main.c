@@ -20,10 +20,10 @@ int main(void)
     BOARD_InitDebugConsole();
 
     PRINTF("\r\nRV32M1-VEGA RI5CY baremetal app\r\n");
-    PRINTF("LED is blinking.\r\n");
 
     GPIO_PinInit(BOARD_LED_GPIO, BOARD_LED_GPIO_PIN, &led_config);
 
+    PRINTF("Starting to blink LED...\r\n");
     while (1) {
         delay();
         GPIO_TogglePinsOutput(BOARD_LED_GPIO, 1u << BOARD_LED_GPIO_PIN);
