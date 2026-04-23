@@ -2,11 +2,11 @@
   "dockerFile": "../Containerfile",
   "build": {
     "args": {
-      "WORKSPACE": "${containerWorkspaceFolder}"
-    }
+      "WORKSPACE": "${containerWorkspaceFolder}",
+    },
   },
   "remoteUser": "dev",
-  "runArgs": ["--privileged", "--hostname=vega"],
+  "runArgs": ["--name=${localWorkspaceFolderBasename}", "--privileged", "--hostname=vega"],
   "containerEnv": {},
   "customizations": {
     "vscode": {
@@ -18,7 +18,7 @@
         "streetsidesoftware.code-spell-checker",
         "eamodio.gitlens",
         "redhat.vscode-xml",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
       ],
     },
   },

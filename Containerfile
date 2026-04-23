@@ -61,6 +61,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && dpkg-reconfigure locales \
     && rm -rf /var/lib/apt/lists/*
 
+# Legacy shared libraries needed by the vendor riscv32-unknown-elf-gdb, which
+# is linked against libncurses5, libtinfo5, and libpython2.7 -- all removed
+# from Ubuntu 24.04 (noble). We extract the .so files straight from jammy/
+# focal .debs rather than `dpkg -i`, to skip transitive deps (libssl1.1, etc.)
+# that noble no longer ships. Different SONAMEs from libncurses6 / python3
+# mean the old libs sit alongside the modern ones without conflict.
+RUN set -eux; \
+    cd /tmp; \
+    for url in \
+        http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb \
+        http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb \
+        http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-minimal_2.7.18-13ubuntu1.5_amd64.deb \
+        http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-stdlib_2.7.18-13ubuntu1.5_amd64.deb \
+        http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7_2.7.18-13ubuntu1.5_amd64.deb \
+    ; do wget -q "$url"; done; \
+    for deb in *.deb; do dpkg-deb -x "$deb" /; done; \
+    ldconfig; \
+    rm -f /tmp/*.deb
+
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8

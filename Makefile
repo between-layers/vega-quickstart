@@ -4,6 +4,8 @@
 #   make <app>           builds the given application
 #   make flash-<app>     build and flash <app> via OpenOCD
 #   make sim-<app>       run <app> in Renode
+#   make gdbserver       start OpenOCD as a GDB server (listens on :3333)
+#   make gdb-<app>       connect GDB to a running gdbserver, loading <app>.elf
 #   make clean           remove all build artifacts
 #   make list            list available apps
 #   make serial          open serial console
@@ -20,8 +22,11 @@ MAKEFLAGS += --no-builtin-rules
 
 APPS := $(patsubst apps/%/,%,$(wildcard apps/*/))
 
-.PHONY: all list clean serial build flash
-.PHONY: $(APPS) $(addprefix flash-,$(APPS)) $(addprefix sim-,$(APPS))
+OPENOCD     ?= openocd
+OPENOCD_CFG := support/openocd/openocd_rv32m1_vega_ri5cy.cfg
+
+.PHONY: all list clean serial build flash gdb gdbserver
+.PHONY: $(APPS) $(addprefix flash-,$(APPS)) $(addprefix sim-,$(APPS)) $(addprefix gdb-,$(APPS))
 
 # ============================================================================
 # Dispatcher: no APP set, route per-app targets into a sub-make with APP=<name>
@@ -41,6 +46,12 @@ $(APPS):
 
 $(addprefix flash-,$(APPS)): flash-%:
 	@$(MAKE) --no-print-directory APP=$* flash
+
+gdbserver:
+	$(OPENOCD) -f $(OPENOCD_CFG) -c "init" -c "halt" -c "ri5cy_boot"
+
+$(addprefix gdb-,$(APPS)): gdb-%:
+	@$(MAKE) --no-print-directory APP=$* gdb
 
 RENODE ?= renode
 
@@ -69,7 +80,7 @@ CC      := $(CROSS_COMPILE)gcc
 AS      := $(CROSS_COMPILE)gcc
 OBJCOPY := $(CROSS_COMPILE)objcopy
 SIZE    := $(CROSS_COMPILE)size
-OPENOCD ?= openocd
+GDB     := $(CROSS_COMPILE)gdb
 
 # Directories
 APP_DIR    := apps/$(APP)
@@ -81,7 +92,6 @@ UTIL_DIR   := $(DEVICE_DIR)/utilities
 BOARD_DIR  := $(SDK_ROOT)/boards/rv32m1_vega
 
 LDSCRIPT    := $(BOARD_DIR)/driver_examples/gpio/led_output/ri5cy/riscvgcc/RV32M1_ri5cy_flash.ld
-OPENOCD_CFG := support/openocd/openocd_rv32m1_vega_ri5cy.cfg
 
 ARCH_FLAGS := -march=rv32imc
 
@@ -178,6 +188,9 @@ flash: $(TARGET).elf
 		-c "flash write_image erase $(TARGET).elf" \
 		-c "reset run" \
 		-c "exit"
+
+gdb: $(TARGET).elf
+	$(GDB) $< -ex "target remote :3333"
 
 -include $(C_OBJS:.o=.d)
 

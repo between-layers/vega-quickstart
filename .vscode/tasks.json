@@ -1,0 +1,142 @@
+{
+    "version": "2.0.0",
+    "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+    },
+    "tasks": [
+        {
+            "label": "build",
+            "detail": "Build the selected app (make <app>)",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "${config:vega.app}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "clean",
+            "detail": "Remove the build/ directory",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "flash",
+            "detail": "Build and flash the selected app via OpenOCD (make flash-<app>)",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "flash-${config:vega.app}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "start gdbserver",
+            "detail": "Run OpenOCD as a GDB server on :3333. Stays running until killed.",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "gdbserver"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "reveal": "always"
+            },
+            "problemMatcher": {
+                "owner": "openocd",
+                "pattern": {
+                    "regexp": "^(?!.*).*$",
+                    "file": 1,
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Open On-Chip Debugger",
+                    "endsPattern": "Listening on port 3333 for gdb connections"
+                }
+            }
+        },
+        {
+            "label": "build + start gdbserver",
+            "detail": "Internal: chained preLaunchTask for the Flash & Debug launch config.",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "build",
+                "start gdbserver"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "kill stuff",
+            "detail": "Kill any lingering OpenOCD GDB server and serial connections. Runs automatically when a debug session ends.",
+            "type": "shell",
+            "command": "sudo pkill -f 'openocd -f support/openocd' || true; sudo pkill -f 'minicom' || true",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "showReuseMessage": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "simulate (Renode)",
+            "detail": "Run the selected app inside the Renode simulator",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "sim-${config:vega.app}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "serial console",
+            "detail": "Open a 115200 8N1 serial console to the board",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "serial"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": []
+}

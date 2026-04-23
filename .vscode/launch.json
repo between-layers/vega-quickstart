@@ -1,0 +1,110 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flash & Debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/build/${config:vega.app}/${config:vega.app}.elf",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/opt/riscv32i/bin/riscv32-unknown-elf-gdb",
+      "preLaunchTask": "build + start gdbserver",
+      "stopAtConnect": false,
+      "postDebugTask": "kill stuff",
+      "launchCompleteCommand": "exec-continue",
+      // "logging": {
+      //     "engineLogging": true,
+      //     "trace": true,
+      //     "traceResponse": true
+      // },
+      "setupCommands": [
+        {
+          "text": "set confirm off",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "set architecture riscv:rv32",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "set mem inaccessible-by-default off",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "file ${workspaceFolder}/build/${config:vega.app}/${config:vega.app}.elf",
+          "ignoreFailures": false,
+          "description": "Load symbols and ELF sections into GDB",
+        },
+        {
+          "text": "target extended-remote localhost:3333",
+          "ignoreFailures": false,
+          "description": "Connect to OpenOCD's GDB server",
+        },
+        {
+          "text": "monitor reset halt",
+          "ignoreFailures": false,
+          "description": "Reset and halt the core",
+        },
+        {
+          "text": "load",
+          "ignoreFailures": false,
+          "description": "Flash the ELF over JTAG",
+        },
+        {
+          "text": "monitor reset halt",
+          "ignoreFailures": false,
+          "description": "Re-halt at the reset vector",
+        },
+        {
+          "text": "tbreak main",
+          "ignoreFailures": true,
+          "description": "Break once at main()",
+        },
+      ],
+    },
+    {
+      "name": "Attach",
+      "type": "cppdbg",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/build/${config:vega.app}/${config:vega.app}.elf",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/opt/riscv32i/bin/riscv32-unknown-elf-gdb",
+      "preLaunchTask": "build",
+      "stopAtConnect": true,
+      "postDebugTask": "kill stuff",
+      "launchCompleteCommand": "None",
+      "setupCommands": [
+        {
+          "text": "set confirm off",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "set architecture riscv:rv32",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "set mem inaccessible-by-default off",
+          "ignoreFailures": false,
+        },
+        {
+          "text": "file ${workspaceFolder}/build/${config:vega.app}/${config:vega.app}.elf",
+          "ignoreFailures": false,
+          "description": "Load symbols and ELF sections into GDB",
+        },
+        {
+          "text": "target extended-remote localhost:3333",
+          "ignoreFailures": false,
+          "description": "Connect to a manually-started gdbserver",
+        },
+        {
+          "text": "monitor halt",
+          "ignoreFailures": true,
+          "description": "Halt the running target without resetting it",
+        },
+      ],
+    },
+  ],
+  "inputs": [],
+}
